@@ -1,0 +1,43 @@
+#!/bin/sh
+set -e
+
+[ -d /data ] ||
+  mkdir /data
+
+# Config the data file structure for graphite
+[ -d /data/graphite/storage ] || {
+  mkdir -p /data/graphite/storage
+  chmod 0775 /data/graphite/storage
+}
+[ -d /data/graphite/storage/whisper ] || {
+  mkdir -p /data/graphite/storage/whisper
+  chmod 0755 /data/graphite/storage/whisper
+}
+[ -d /data/graphite/storage/rrd ] || {
+  mkdir -p /data/graphite/storage/rrd
+  chmod 0755 /data/graphite/storage/rrd
+}
+[ -d /data/graphite/storage/log/webapp ] || {
+  mkdir -p /data/graphite/storage/log/webapp
+  chmod 0755 /data/graphite/storage/log/webapp
+}
+[ -f /data/graphite/storage/graphite.db ] || {
+  touch /data/graphite/storage/graphite.db
+  chmod 0664 /data/graphite/storage/graphite.db
+}
+[ -f /data/graphite/storage/index ] ||
+  touch /data/graphite/storage/index
+
+chown -R www-data:www-data /data/graphite/storage
+
+cd /var/lib/graphite/webapp/graphite && \
+  sudo -u www-data GRAPHITE_STORAGE_DIR='/data/graphite/storage' GRAPHITE_CONF_DIR='/var/lib/graphite/conf' python manage.py syncdb --noinput && cd
+
+[ -d /data/collectd ] || {
+  mkdir -p /data/collectd
+  chmod 0755 /data/collectd
+}
+chown -R collectd /data/collectd
+
+# Run supervisor
+/usr/bin/supervisord -c /etc/supervisor/supervisord.conf

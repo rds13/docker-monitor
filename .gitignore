@@ -1,0 +1,6 @@
+*.sw*
+*.un*
+*.log
+.vagrant*
+*.gz
+*.DS_Store
