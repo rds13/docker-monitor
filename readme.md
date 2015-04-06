@@ -4,7 +4,7 @@ Graphite monitoring and reporting with dedicated volume for data storage.
 
 * `docker build [--rm] -t <user>/monitor .`
 * `docker run -v /data --name monitor-data busybox:ubuntu-14.04`
-* `docker run -d -v /etc/localtime:/etc/localtime:ro --volumes-from monitor-data -p 80:80 -p 2003:2003 -p 2004:2004 -p 7002:7002 -p 8125:8125/udp -p 258126:258126 --name monitor <user>/monitor`
+* `docker run -d -h <hostname> -v /etc/localtime:/etc/localtime:ro --volumes-from monitor-data -p 80:80 -p 2003:2003 -p 2004:2004 -p 7002:7002 -p 8125:8125/udp -p 25826:25826/udp --name monitor <user>/monitor`
 
 ## Software
 
