@@ -8,14 +8,15 @@ Graphite monitoring and reporting with dedicated volume for data storage.
 
 ## Software
 
-* Based on ubuntu:trusty box.
-* carbon and graphite installed via pip.
-* Built with grafana 1.9.1.
+* Based on debian:jessie box.
+* whisper, ceres, carbon, graphite installed via pip.
+* Built with grafana 2.5.0
 
 ## Usage
 Carbon default metrics configuration is to receive metrics every 10s.
 
 Connect to grafana with url http://localhost/grafana.
+Configure grafana with graphite datasource : http://localhost:8000 with proxy mode.
 
 Ports
 
