@@ -1,35 +1,49 @@
-FROM    ubuntu:trusty
+FROM debian:jessie
+
+ENV DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get -y update
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y language-pack-en
-ENV LANGUAGE en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LC_ALL en_US.UTF-8
-
-RUN locale-gen en_US.UTF-8
+RUN apt-get install -y --force-yes locales
+RUN echo "fr_FR.UTF-8 UTF-8" >> /etc/locale.gen
+RUN echo "LANG=\"fr_FR.UTF-8\"" >> /etc/environment
 RUN dpkg-reconfigure locales
+
+ENV LC_ALL   fr_FR.UTF-8
+ENV LANG     fr_FR.UTF-8
+ENV LANGUAGE fr_FR.UTF-8
+
+# Configure timezone
+RUN echo "Europe/Paris" > /etc/timezone && \
+    dpkg-reconfigure -f noninteractive tzdata
 
 # -------------------- #
 #     Installation     #
 # -------------------- #
 
 # install carbon & graphite
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y wget \
-    python-ldap python-cairo python-django python-twisted \
-    python-django-tagging python-simplejson python-memcache \
-    python-pysqlite2 python-support python-pip gunicorn \
+RUN apt-get install -y wget \
     supervisor nginx-light collectd \
-    build-essential python-dev
-RUN pip install 'Twisted==14.0.0' Django==1.5 whisper bucky && \
-    pip install --install-option="--prefix=/var/lib/graphite" --install-option="--install-lib=/var/lib/graphite/lib" carbon && \
-    pip install --install-option="--prefix=/var/lib/graphite" --install-option="--install-lib=/var/lib/graphite/webapp" graphite-web
+    build-essential python-pip python-dev \
+    libcairo2-dev
+RUN apt-get install -y libffi-dev git
+RUN apt-get install -y python-yaml
+RUN apt-get install -y sudo
+RUN pip install 'Twisted==14.0.0' Django==1.5.12 python-memcached==1.47 txAMQP==0.4 simplejson==2.1.6 bucky==2.3.0 django-tagging==0.3.6 && \
+    pip install pyparsing==1.5.7 cairocffi==0.7.2 whitenoise pytz gunicorn
+RUN pip install git+git://github.com/graphite-project/whisper.git#egg=whisper git+git://github.com/graphite-project/ceres.git#egg=ceres
+RUN pip install --install-option="--prefix=/var/lib/graphite" --install-option="--install-lib=/var/lib/graphite/lib" carbon && \
+    pip install --install-option="--prefix=/var/lib/graphite" --install-option="--install-lib=/var/lib/graphite/webapp" graphite-web==0.9.14
 RUN adduser --system --group --no-create-home collectd
 
 # grafana
 RUN mkdir /var/lib/grafana && cd /var/lib/grafana && \
-    wget -nv http://grafanarel.s3.amazonaws.com/grafana-1.9.1.tar.gz -O grafana.tar.gz && \
+    wget -nv https://grafanarel.s3.amazonaws.com/builds/grafana-2.5.0.linux-x64.tar.gz -O grafana.tar.gz && \
     tar zxf grafana.tar.gz --strip-components=1 && \
     rm -rf grafana.tar.gz
+
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # --------------------- #
 #     Configuration     #
@@ -39,10 +53,12 @@ COPY ./nginx.conf /etc/nginx/nginx.conf
 COPY ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Configure graphite & carbon
+RUN cp /var/lib/graphite/conf/graphite.wsgi.example /var/lib/graphite/webapp/graphite/graphite.wsgi
 COPY ./initial_data.json /var/lib/graphite/webapp/graphite/initial_data.json
 COPY ./local_settings.py /var/lib/graphite/webapp/graphite/local_settings.py
 COPY ./carbon.conf /var/lib/graphite/conf/carbon.conf
 COPY ./storage-schemas.conf /var/lib/graphite/conf/storage-schemas.conf
+RUN chown -R www-data:www-data /var/lib/graphite/webapp
 
 RUN echo "SECRET_KEY='`python -c 'import os; import base64; print(base64.b64encode(os.urandom(40)))'`'" >> /var/lib/graphite/webapp/graphite/local_settings.py
 
@@ -51,7 +67,7 @@ COPY ./collectd.conf /etc/collectd/collectd.conf
 COPY ./collectd-graphite.conf /etc/collectd/collectd.conf.d/collectd-graphite.conf
 
 # Configure grafana
-COPY ./config.js /var/lib/grafana/config.js
+COPY ./grafana/config.ini /etc/grafana/config.ini
 
 VOLUME  /var/log/supervisor
 VOLUME  /data

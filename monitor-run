@@ -13,6 +13,10 @@ set -e
   mkdir -p /data/graphite/storage/whisper
   chmod 0755 /data/graphite/storage/whisper
 }
+[ -d /data/graphite/storage/ceres ] || {
+  mkdir -p /data/graphite/storage/ceres
+  chmod 0755 /data/graphite/storage/ceres
+}
 [ -d /data/graphite/storage/rrd ] || {
   mkdir -p /data/graphite/storage/rrd
   chmod 0755 /data/graphite/storage/rrd
@@ -30,14 +34,23 @@ set -e
 
 chown -R www-data:www-data /data/graphite/storage
 
+# Create database
 cd /var/lib/graphite/webapp/graphite && \
-  sudo -u www-data GRAPHITE_STORAGE_DIR='/data/graphite/storage' GRAPHITE_CONF_DIR='/var/lib/graphite/conf' python manage.py syncdb --noinput && cd
+  sudo -u www-data \
+    GRAPHITE_STORAGE_DIR='/data/graphite/storage' \
+    GRAPHITE_CONF_DIR='/var/lib/graphite/conf' \
+    python manage.py syncdb --noinput && \
+    cd
 
 [ -d /data/collectd ] || {
   mkdir -p /data/collectd
   chmod 0755 /data/collectd
 }
 chown -R collectd /data/collectd
+
+# remove stale pid file
+[ -f /data/graphite/storage/carbon-cache-a.pid ] &&
+  rm /data/graphite/storage/carbon-cache-a.pid
 
 # Run supervisor
 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf

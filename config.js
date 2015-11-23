@@ -14,7 +14,7 @@ function (Settings) {
     datasources: {
       graphite: {
         type: 'graphite',
-        url: host,
+        url: host + '/graphite',
         default: true
       }
     },
