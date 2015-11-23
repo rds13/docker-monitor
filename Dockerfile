@@ -25,10 +25,7 @@ RUN echo "Europe/Paris" > /etc/timezone && \
 RUN apt-get install -y wget \
     supervisor nginx-light collectd \
     build-essential python-pip python-dev \
-    libcairo2-dev
-RUN apt-get install -y libffi-dev git
-RUN apt-get install -y python-yaml
-RUN apt-get install -y sudo
+    libcairo2-dev libffi-dev git python-yaml sudo
 RUN pip install 'Twisted==14.0.0' Django==1.5.12 python-memcached==1.47 txAMQP==0.4 simplejson==2.1.6 bucky==2.3.0 django-tagging==0.3.6 && \
     pip install pyparsing==1.5.7 cairocffi==0.7.2 whitenoise pytz gunicorn
 RUN pip install git+git://github.com/graphite-project/whisper.git#egg=whisper git+git://github.com/graphite-project/ceres.git#egg=ceres
@@ -53,7 +50,6 @@ COPY ./nginx.conf /etc/nginx/nginx.conf
 COPY ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Configure graphite & carbon
-RUN cp /var/lib/graphite/conf/graphite.wsgi.example /var/lib/graphite/webapp/graphite/graphite.wsgi
 COPY ./initial_data.json /var/lib/graphite/webapp/graphite/initial_data.json
 COPY ./local_settings.py /var/lib/graphite/webapp/graphite/local_settings.py
 COPY ./carbon.conf /var/lib/graphite/conf/carbon.conf
