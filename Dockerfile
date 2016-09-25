@@ -1,7 +1,11 @@
 FROM debian:jessie
+ARG APT_PROXY
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+#RUN nc -zv $APT_PROXY 3142 &> /dev/null && if [ $? -eq 0 ]; then echo "Acquire::http::Proxy \"http://$APT_PROXY:3142\";" > /etc/apt/apt.conf.d/000apt-proxy; echo "Proxy detected on docker host - using for this build"; fi
+#RUN perl -pe 'use IO::Socket::INET; chomp; $socket = new IO::Socket::INET(PeerHost=>$_,PeerPort=>"8000"); print $socket "HEAD /\n\n"; my $data; $socket->recv($data,1024); exit($data !~ /squid-deb-proxy/)' <  /tmp/host_ip.txt
+RUN echo "Acquire::http::Proxy \"http://${APT_PROXY}:3142\";" > /etc/apt/apt.conf.d/000apt-proxy
 RUN apt-get -y update
 
 RUN apt-get install -y --force-yes locales
@@ -26,21 +30,32 @@ RUN apt-get install -y wget \
     supervisor nginx-light collectd \
     build-essential python-pip python-dev \
     libcairo2-dev libffi-dev git python-yaml sudo
-RUN pip install 'Twisted==14.0.0' Django==1.5.12 python-memcached==1.47 txAMQP==0.4 simplejson==2.1.6 bucky==2.3.0 django-tagging==0.3.6 && \
-    pip install pyparsing==1.5.7 cairocffi==0.7.2 whitenoise pytz gunicorn
-RUN pip install git+git://github.com/graphite-project/whisper.git#egg=whisper git+git://github.com/graphite-project/ceres.git#egg=ceres
-RUN pip install --install-option="--prefix=/var/lib/graphite" --install-option="--install-lib=/var/lib/graphite/lib" carbon && \
-    pip install --install-option="--prefix=/var/lib/graphite" --install-option="--install-lib=/var/lib/graphite/webapp" graphite-web==0.9.14
+#RUN pip install 'Twisted==14.0.0' Django==1.5.12 python-memcached==1.47 txAMQP==0.4 simplejson==2.1.6 bucky==2.3.0 django-tagging==0.3.6 && \
+#    pip install pyparsing==1.5.7 cairocffi==0.7.2 whitenoise pytz gunicorn
+#RUN pip install git+git://github.com/graphite-project/whisper.git#egg=whisper git+git://github.com/graphite-project/ceres.git#egg=ceres
+#RUN pip install --install-option="--prefix=/var/lib/graphite" --install-option="--install-lib=/var/lib/graphite/lib" carbon && \
+#    pip install --install-option="--prefix=/var/lib/graphite" --install-option="--install-lib=/var/lib/graphite/webapp" graphite-web==0.9.14
+RUN pip install https://github.com/graphite-project/whisper/tarball/master && \
+    pip install --install-option="--prefix=/var/lib/graphite" \
+                --install-option="--install-lib=/var/lib/graphite/lib" \
+                https://github.com/graphite-project/carbon/tarball/master  &&\
+    pip install --install-option="--prefix=/var/lib/graphite" \
+                --install-option="--install-lib=/var/lib/graphite/webapp" \
+                https://github.com/graphite-project/graphite-web/tarball/master
+
 RUN adduser --system --group --no-create-home collectd
 
 # grafana
 RUN mkdir /var/lib/grafana && cd /var/lib/grafana && \
-    wget -nv https://grafanarel.s3.amazonaws.com/builds/grafana-2.5.0.linux-x64.tar.gz -O grafana.tar.gz && \
+    wget -nv https://grafanarel.s3.amazonaws.com/builds/grafana-2.6.0.linux-x64.tar.gz -O grafana.tar.gz && \
     tar zxf grafana.tar.gz --strip-components=1 && \
     rm -rf grafana.tar.gz
 
+RUN pip install bucky==2.3.0 gunicorn zope.interface
+
 RUN apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    rm /etc/apt/apt.conf.d/000apt-proxy
 
 # --------------------- #
 #     Configuration     #
